@@ -194,6 +194,41 @@ contract Dao is AccessControl,ReentrancyGuard {
         return true;
     }
 
+      // contribution functionality
+    function contribute() payable external returns(uint256){
+        require(msg.value > 0 ether, "invalid amount");
+        if (!hasRole(STAKEHOLDER_ROLE, msg.sender)) {
+            uint256 totalContributions = contributors[msg.sender] + msg.value;
+
+            if (totalContributions >= STAKEHOLDER_MIN_CONTRIBUTION) {
+                stakeholders[msg.sender] = msg.value;
+                contributors[msg.sender] += msg.value;
+                _setupRole(STAKEHOLDER_ROLE,msg.sender);
+                _setupRole(COLLABORATOR_ROLE, msg.sender);
+            }
+            else {
+                contributors[msg.sender] += msg.value;
+                _setupRole(COLLABORATOR_ROLE,msg.sender);
+            }
+        }
+        else{
+            stakeholders[msg.sender] += msg.value;
+            contributors[msg.sender] += msg.value;
+        }
+
+        balance += msg.value;
+        emit ProposalAction(
+            msg.sender,
+            STAKEHOLDER_ROLE,
+            "CONTRIBUTION SUCCESSFULLY RECEIVED!",
+            address(this),
+            msg.value
+        );
+
+
+        return balance;
+    }
+
 
 
 
