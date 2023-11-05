@@ -5,7 +5,7 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Dao is AccessControl,ReentrancyGuard {
+contract CeloDao is AccessControl,ReentrancyGuard {
 
     uint256 totalProposals;
     uint256 balance;
