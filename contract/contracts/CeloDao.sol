@@ -148,6 +148,20 @@ contract Dao is AccessControl,ReentrancyGuard {
 
     }
 
+    // handling vote
+    function handleVoting(Proposals storage proposal) private {
+        if (proposal.passed || proposal.duration <= block.timestamp) {
+            proposal.passed = true;
+            revert("Time has already passed");
+        }
+        uint256[] memory tempVotes = stakeholderVotes[msg.sender];
+        for (uint256 vote = 0; vote < tempVotes.length; vote++) {
+            if (proposal.id == tempVotes[vote])
+                revert("double voting is not allowed");
+        }
+
+    }
+
 
 
 }
