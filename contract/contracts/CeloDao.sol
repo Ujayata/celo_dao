@@ -43,6 +43,21 @@ contract Dao is AccessControl,ReentrancyGuard {
         bool chosen;
     }
 
+     modifier stakeholderOnly(string memory message) {
+        require(hasRole(STAKEHOLDER_ROLE,msg.sender),message);
+        _;
+    }
+    modifier contributorOnly(string memory message){
+        require(hasRole(COLLABORATOR_ROLE,msg.sender),message);
+        _;
+    }
+
+    modifier onlyDeployer(string memory message) {
+        require(msg.sender == deployer,message);
+
+        _;
+    }
+
 
 
 }
