@@ -66,6 +66,16 @@ contract Dao is AccessControl,ReentrancyGuard {
         uint256 amount
     );
 
+     event VoteAction(
+        address indexed creator,
+        bytes32 role,
+        string message,
+        address indexed beneficiary,
+        uint256 amount,
+        uint256 upVote,
+        uint256 downVotes,
+        bool chosen
+    );
 
      constructor(){
         deployer = msg.sender;
@@ -97,6 +107,46 @@ contract Dao is AccessControl,ReentrancyGuard {
         return StakeholderProposal;
     }
 
+    
+    // voting
+    function performVote(uint256 proposalId,bool chosen) external
+    stakeholderOnly("Only stakeholders can perform voting")
+    returns(Voted memory)
+    {
+        Proposals storage StakeholderProposal = raisedProposals[proposalId];
+        handleVoting(StakeholderProposal);
+        if(chosen) StakeholderProposal.upVote++;
+        else StakeholderProposal.downVotes++;
+
+        stakeholderVotes[msg.sender].push(
+            StakeholderProposal.id
+        );
+        votedOn[StakeholderProposal.id].push(
+            Voted(
+                msg.sender,
+                block.timestamp,
+                chosen
+            )
+        );
+
+        emit VoteAction(
+            msg.sender,
+            STAKEHOLDER_ROLE,
+            "PROPOSAL VOTE",
+            StakeholderProposal.beneficiary,
+            StakeholderProposal.amount,
+            StakeholderProposal.upVote,
+            StakeholderProposal.downVotes,
+            chosen
+        );
+
+        return Voted(
+            msg.sender,
+            block.timestamp,
+            chosen
+        );
+
+    }
 
 
 
