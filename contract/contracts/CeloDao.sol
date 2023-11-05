@@ -58,6 +58,37 @@ contract Dao is AccessControl,ReentrancyGuard {
         _;
     }
 
+     constructor(){
+        deployer = msg.sender;
+    }
+
+       // proposal creation
+    function createProposal (
+        string calldata title,
+        string calldata description,
+        address beneficiary,
+        uint256 amount
+    )external stakeholderOnly("Only stakeholders are allowed to create Proposals") returns(Proposals memory){
+        uint256 currentID = totalProposals++;
+        Proposals storage StakeholderProposal = raisedProposals[currentID];
+        StakeholderProposal.id = currentID;
+        StakeholderProposal.amount = amount;
+        StakeholderProposal.title = title;
+        StakeholderProposal.description = description;
+        StakeholderProposal.beneficiary = payable(beneficiary);
+        StakeholderProposal.duration = block.timestamp + MIN_VOTE_PERIOD;
+
+        emit ProposalAction(
+            msg.sender,
+            STAKEHOLDER_ROLE,
+            'Proposal Raised',
+            beneficiary,
+            amount
+        );
+        return StakeholderProposal;
+    }
+
+    
 
 
 }
