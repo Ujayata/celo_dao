@@ -58,6 +58,15 @@ contract Dao is AccessControl,ReentrancyGuard {
         _;
     }
 
+     event ProposalAction(
+        address indexed creator,
+        bytes32 role,
+        string message,
+        address indexed beneficiary,
+        uint256 amount
+    );
+
+
      constructor(){
         deployer = msg.sender;
     }
@@ -88,7 +97,7 @@ contract Dao is AccessControl,ReentrancyGuard {
         return StakeholderProposal;
     }
 
-    
+
 
 
 }
