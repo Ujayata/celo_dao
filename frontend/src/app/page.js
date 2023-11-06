@@ -1,21 +1,21 @@
+"use client"
+
 import Head from 'next/head'
 import 'bootstrap/dist/css/bootstrap.css'
 import { Inter } from 'next/font/google'
 import { useContext, useEffect, useRef, useState } from 'react'
-import { GOVERNANCE_CONTEXT } from "@/context/GovernanceContext";
+import { GOVERNANCE_CONTEXT } from "../../context/GovernanceContext";
 
-// import iso
-// import styles from '@/styles/Home.module.css'
-// const 
+
 const inter = Inter({ subsets: ['latin'] })
 let Isotope;
 let connect
 if(typeof window !=='undefined'){
-    connect = window.ethereum
+    connect = window.CELOereum
 }
   
 
-const Home =()=> {
+function Home (){
   const {
         connectWallet,
         account,
@@ -127,7 +127,7 @@ const Home =()=> {
               <div className="collapse navbar-collapse" id="collapsibleNavId">
                   <ul className="navbar-nav me-auto mt-2 mt-lg-0 text-secondary">
                       <li className="nav-item">
-                          <a className="nav-link active fw-bold text-secondary" href="#" aria-current="page">DAO <span className="visually-hidden">(current)</span></a>
+                          <a className="nav-link active fw-bold text-secondary" href="#" aria-current="page">CELODAO <span className="visually-hidden">(current)</span></a>
                       </li>
                   </ul>
                   <form className="d-flex my-2 my-lg-0 px-2">
@@ -150,7 +150,7 @@ const Home =()=> {
                             <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div className="modal-body">
-                          <input className='form-control' onChange={e=> setAmount( e.target.value)} placeholder='0.1ETH and above to be a stakeholder'/>
+                          <input className='form-control' onChange={e=> setAmount( e.target.value)} placeholder='0.1CELO and above to be a stakeholder'/>
                         </div>
                         <div className="modal-footer">
                           <button type="button" className="btn btn-primary" disabled={disability} onClick={()=>Contribute(modalRef)}>Submit</button>
@@ -193,11 +193,11 @@ const Home =()=> {
               </div>
               <div className='col col-md-3 col-container bg-info rounded'>
                   <h5 className='title '> DAO Balance  </h5>
-                  <h4 className='text-white fw-bolder m-auto mt-5'>{`${totalBalance} ETH`}</h4>
+                  <h4 className='text-white fw-bolder m-auto mt-5'>{`${totalBalance} CELO`}</h4>
               </div>
               <div className='col col-md-3 col-container bg-success rounded'>
                  <h5 className='title'> My Contributions </h5>
-                 <h4 className='text-white fw-bolder m-auto mt-5'>{`${stakeholderBalance > 0 ? stakeholderBalance :  contributorBalance} ETH`}</h4>
+                 <h4 className='text-white fw-bolder m-auto mt-5'>{`${stakeholderBalance > 0 ? stakeholderBalance :  contributorBalance} CELO`}</h4>
               </div>
               <div className='col col-md-3 col-container bg-warning rounded'>
                <h5 className='title'>  Status</h5>

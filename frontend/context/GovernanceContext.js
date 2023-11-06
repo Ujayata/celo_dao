@@ -1,3 +1,5 @@
+"use client"
+
 import React,{createContext,useEffect,useState} from 'react'
 import {ADDRESS,ABI} from '../constants/index'
 import {ethers} from 'ethers'

@@ -1,5 +1,5 @@
 import { Inter } from 'next/font/google'
-import {Government_provider} from '@/context/GovernanceContext'
+import {Government_provider} from '../../context/GovernanceContext'
 import './globals.css'
 import './styles.css'
 
