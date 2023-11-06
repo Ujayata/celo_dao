@@ -86,6 +86,7 @@ function Home (){
     getStakeholderBalance()
     getContributorBalance()
     proposals()
+    console.log(proposalsData);
   },[getTotalBalance,getStakeholderBalance,getContributorBalance,proposals])
 
 
@@ -242,7 +243,7 @@ function Home (){
                     <p className="font-italic description">
                       {i.description}
                     </p>
-                    <button className="btn btn-success m-2 btn-sm position-relative" onClick={()=>voting(i.id,true)}>
+                    <button className="btn btn-success m-2 btn-sm position-relative" disabled={i.paid} onClick={()=>voting(i.id,true)}>
                       upVote 
                       <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
                        {i.upVote}
@@ -250,7 +251,7 @@ function Home (){
                       </span>
                      </button>
 
-                     <button className="btn btn-danger btn-sm position-relative" type='buttton' onClick={()=>voting(i.id,false)}>
+                     <button className="btn btn-danger btn-sm position-relative" disabled={i.paid} type='buttton' onClick={()=>voting(i.id,false)}>
                       downVote 
                       <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning">
                         {i.downVote}
@@ -259,7 +260,7 @@ function Home (){
                      </button>
                      {
                         Number(account) == Number(deployer) ? 
-                          <button className="btn btn-danger btn-sm position-relative m-2" type='buttton' onClick={()=>payBeneficiary(i.id)}>
+                          <button className="btn btn-danger btn-sm position-relative m-2" disabled={i.paid} type='buttton' onClick={()=>payBeneficiary(i.id)}>
                           pay beneficiary
                          </button>
                         

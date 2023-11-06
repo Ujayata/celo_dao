@@ -189,7 +189,7 @@ const Government_provider =({children})=>{
                 Swal.fire({
                     position: 'top-end',
                     icon: 'success',
-                    text: `You have madea a proposal successfully!`,
+                    text: `You have made a proposal successfully!`,
                     showConfirmButton: true,
                     timer: 4000
                 })
@@ -226,7 +226,8 @@ const Government_provider =({children})=>{
                     beneficiary : e.beneficiary,
                     upVote : e.upVote.toString(),
                     downVote : e.downVotes.toString(),
-                    paid : e.paid
+                    paid : e.paid,
+                    btnDisability : e.paid
 
                 }
 
@@ -289,7 +290,33 @@ const Government_provider =({children})=>{
             })
 
         } catch (error) {
-            console.log(error);
+            if(error.message.includes('insufficient votes')){
+                Swal.fire({
+                    position: 'top-end',
+                    icon: 'warning',
+                    text: `Sorry, insufficient votes`,
+                    showConfirmButton: true,
+                    timer: 4000
+                })
+            }
+            else if(error.message.includes('Time has already passed')){
+                Swal.fire({
+                    position: 'top-end',
+                    icon: 'warning',
+                    text: `Sorry, voting time has ended`,
+                    showConfirmButton: true,
+                    timer: 4000
+                })
+            }
+            else if (error.message.includes('double voting is not allowed')) {
+                Swal.fire({
+                    position: 'top-end',
+                    icon: 'warning',
+                    text: `You have already voted!`,
+                    showConfirmButton: true,
+                    timer: 4000
+                })
+            }
         }
     }
 
