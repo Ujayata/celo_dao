@@ -197,6 +197,15 @@ const Government_provider =({children})=>{
                 console.log(error);
             }   
         }
+        else{
+            Swal.fire({
+                position: 'top-end',
+                icon: 'warning',
+                text: `You are not a stakeholder!`,
+                showConfirmButton: true,
+                timer: 4000
+            })
+        }
        
     }
 
