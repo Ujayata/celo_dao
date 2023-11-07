@@ -1,28 +1,24 @@
-// SPDX-License-Identifier : UNLICENSED
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract CeloDao is AccessControl,ReentrancyGuard {
+contract CeloDao is Ownable, ReentrancyGuard {
+    // Contract state variables
+    uint256 private totalProposals;
+    uint256 private balance;
+    address private deployer;
 
-    uint256 totalProposals;
-    uint256 balance;
-    address deployer;
+    // Immutable variables
+    uint256 private immutable STAKEHOLDER_MIN_CONTRIBUTION = 0.1 ether;
+    uint256 private immutable MIN_VOTE_PERIOD = 5 minutes;
 
-    uint256 immutable STAKEHOLDER_MIN_CONTRIBUTION = 0.1 ether;
-    uint256 immutable MIN_VOTE_PERIOD = 5 minutes;
     bytes32 private immutable COLLABORATOR_ROLE = keccak256("collaborator");
     bytes32 private immutable STAKEHOLDER_ROLE = keccak256("stakeholder");
 
-    mapping(uint256 => Proposals) private raisedProposals;
-    mapping(address => uint256[]) private stakeholderVotes;
-    mapping(uint256 => Voted[]) private votedOn;
-    mapping(address => uint256) private contributors;
-    mapping(address => uint256) private stakeholders;
-
-      struct Proposals {
+    // Structs
+    struct Proposal {
         uint256 id;
         uint256 amount;
         uint256 upVote;
@@ -33,42 +29,33 @@ contract CeloDao is AccessControl,ReentrancyGuard {
         bool paid;
         bool passed;
         address payable beneficiary;
-        address propoper;
+        address proposer;
         address executor;
     }
 
-     struct Voted {
+    struct Voted {
         address voter;
         uint256 timestamp;
         bool chosen;
     }
 
-     modifier stakeholderOnly(string memory message) {
-        require(hasRole(STAKEHOLDER_ROLE,msg.sender),message);
-        _;
-    }
-    modifier contributorOnly(string memory message){
-        require(hasRole(COLLABORATOR_ROLE,msg.sender),message);
-        _;
-    }
+    // Mappings
+    mapping(uint256 => Proposal) private proposals;
+    mapping(address => uint256[]) private stakeholderVotes;
+    mapping(uint256 => Voted[]) private votedOn;
+    mapping(address => uint256) private contributions;
+    mapping(address => uint256) private stakeholderBalances;
 
-    modifier onlyDeployer(string memory message) {
-        require(msg.sender == deployer,message);
-
-        _;
-    }
-
-     event ProposalAction(
+    // Events
+    event ProposalCreated(
         address indexed creator,
-        bytes32 role,
-        string message,
+        string title,
         address indexed beneficiary,
         uint256 amount
     );
 
-     event VoteAction(
-        address indexed creator,
-        bytes32 role,
+    event VotedOnProposal(
+        address indexed voter,
         string message,
         address indexed beneficiary,
         uint256 amount,
@@ -77,216 +64,91 @@ contract CeloDao is AccessControl,ReentrancyGuard {
         bool chosen
     );
 
-     constructor(){
+    // Constructor
+    constructor() {
         deployer = msg.sender;
     }
 
-       // proposal creation
-    function createProposal (
+    // Function to create a proposal
+    function createProposal(
         string calldata title,
         string calldata description,
         address beneficiary,
         uint256 amount
-    )external stakeholderOnly("Only stakeholders are allowed to create Proposals") returns(Proposals memory){
+    ) external onlyRole(STAKEHOLDER_ROLE) returns (Proposal memory) {
         uint256 currentID = totalProposals++;
-        Proposals storage StakeholderProposal = raisedProposals[currentID];
-        StakeholderProposal.id = currentID;
-        StakeholderProposal.amount = amount;
-        StakeholderProposal.title = title;
-        StakeholderProposal.description = description;
-        StakeholderProposal.beneficiary = payable(beneficiary);
-        StakeholderProposal.duration = block.timestamp + MIN_VOTE_PERIOD;
+        Proposal storage newProposal = proposals[currentID];
+        newProposal.id = currentID;
+        newProposal.amount = amount;
+        newProposal.title = title;
+        newProposal.description = description;
+        newProposal.beneficiary = payable(beneficiary);
+        newProposal.duration = block.timestamp + MIN_VOTE_PERIOD;
 
-        emit ProposalAction(
-            msg.sender,
-            STAKEHOLDER_ROLE,
-            'Proposal Raised',
-            beneficiary,
-            amount
-        );
-        return StakeholderProposal;
+        emit ProposalCreated(msg.sender, title, beneficiary, amount);
+        return newProposal;
     }
 
-    
-    // voting
-    function performVote(uint256 proposalId,bool chosen) external
-    stakeholderOnly("Only stakeholders can perform voting")
-    returns(Voted memory)
-    {
-        Proposals storage StakeholderProposal = raisedProposals[proposalId];
-        handleVoting(StakeholderProposal);
-        if(chosen) StakeholderProposal.upVote++;
-        else StakeholderProposal.downVotes++;
+    // Function to vote on a proposal
+    function voteOnProposal(uint256 proposalId, bool chosen) external onlyRole(STAKEHOLDER_ROLE) returns (Voted memory) {
+        Proposal storage proposal = proposals[proposalId];
+        require(proposal.duration > block.timestamp && !proposal.passed, "Proposal is expired or already passed");
 
-        stakeholderVotes[msg.sender].push(
-            StakeholderProposal.id
-        );
-        votedOn[StakeholderProposal.id].push(
-            Voted(
-                msg.sender,
-                block.timestamp,
-                chosen
-            )
-        );
+        handleVoting(proposal);
 
-        emit VoteAction(
-            msg.sender,
-            STAKEHOLDER_ROLE,
-            "PROPOSAL VOTE",
-            StakeholderProposal.beneficiary,
-            StakeholderProposal.amount,
-            StakeholderProposal.upVote,
-            StakeholderProposal.downVotes,
-            chosen
-        );
-
-        return Voted(
-            msg.sender,
-            block.timestamp,
-            chosen
-        );
-
-    }
-
-    // handling vote
-    function handleVoting(Proposals storage proposal) private {
-        if (proposal.passed || proposal.duration <= block.timestamp) {
-            proposal.passed = true;
-            revert("Time has already passed");
+        if (chosen) {
+            proposal.upVote++;
+        } else {
+            proposal.downVotes++;
         }
+
+        stakeholderVotes[msg.sender].push(proposalId);
+        votedOn[proposalId].push(Voted(msg.sender, block.timestamp, chosen));
+
+        emit VotedOnProposal(
+            msg.sender,
+            "Voted on Proposal",
+            proposal.beneficiary,
+            proposal.amount,
+            proposal.upVote,
+            proposal.downVotes,
+            chosen
+        );
+
+        return Voted(msg.sender, block.timestamp, chosen);
+    }
+
+    // Function to handle voting
+    function handleVoting(Proposal storage proposal) private {
         uint256[] memory tempVotes = stakeholderVotes[msg.sender];
         for (uint256 vote = 0; vote < tempVotes.length; vote++) {
-            if (proposal.id == tempVotes[vote])
-                revert("double voting is not allowed");
+            require(proposal.id != tempVotes[vote], "Already voted on this proposal");
         }
-
     }
 
-     // pay beneficiary
-    function payBeneficiary(uint proposalId) external
-    stakeholderOnly("Only stakeholders can make payment") onlyDeployer("Only deployer can make payment") nonReentrant() returns(uint256){
-        Proposals storage stakeholderProposal = raisedProposals[proposalId];
-        require(balance >= stakeholderProposal.amount, "insufficient fund");
-        if(stakeholderProposal.paid == true) revert("payment already made");
-        if(stakeholderProposal.upVote <= stakeholderProposal.downVotes) revert("insufficient votes");
+    // Function to pay the beneficiary
+    function payBeneficiary(uint256 proposalId) external onlyRole(STAKEHOLDER_ROLE) onlyOwner nonReentrant returns (uint256) {
+        Proposal storage proposal = proposals[proposalId];
+        require(balance >= proposal.amount, "Insufficient funds");
+        require(!proposal.paid, "Payment already made");
+        require(proposal.upVote > proposal.downVotes, "Insufficient votes to pass the proposal");
 
-        pay(stakeholderProposal.amount,stakeholderProposal.beneficiary);
-        stakeholderProposal.paid = true;
-        stakeholderProposal.executor = msg.sender;
-        balance -= stakeholderProposal.amount;
+        _pay(proposal.amount, proposal.beneficiary);
+        proposal.paid = true;
+        proposal.executor = msg.sender;
+        balance -= proposal.amount;
 
-        emit ProposalAction(
-            msg.sender,
-            STAKEHOLDER_ROLE,
-            "PAYMENT SUCCESSFULLY MADE!",
-            stakeholderProposal.beneficiary,
-            stakeholderProposal.amount
-        );
+        emit ProposalCreated(msg.sender, "Payment successfully made", proposal.beneficiary, proposal.amount);
 
         return balance;
-
     }
 
-    // paymment functionality
-    function pay(uint256 amount,address to) internal returns(bool){
-        (bool success,) = payable(to).call{value : amount}("");
-        require(success, "payment failed");
+    // Internal function to handle payments
+    function _pay(uint256 amount, address to) private returns (bool) {
+        (bool success, ) = payable(to).call{value: amount}("");
+        require(success, "Payment failed");
         return true;
     }
 
-      // contribution functionality
-    function contribute() payable external returns(uint256){
-        require(msg.value > 0 ether, "invalid amount");
-        if (!hasRole(STAKEHOLDER_ROLE, msg.sender)) {
-            uint256 totalContributions = contributors[msg.sender] + msg.value;
-
-            if (totalContributions >= STAKEHOLDER_MIN_CONTRIBUTION) {
-                stakeholders[msg.sender] = msg.value;
-                contributors[msg.sender] += msg.value;
-                _setupRole(STAKEHOLDER_ROLE,msg.sender);
-                _setupRole(COLLABORATOR_ROLE, msg.sender);
-            }
-            else {
-                contributors[msg.sender] += msg.value;
-                _setupRole(COLLABORATOR_ROLE,msg.sender);
-            }
-        }
-        else{
-            stakeholders[msg.sender] += msg.value;
-            contributors[msg.sender] += msg.value;
-        }
-
-        balance += msg.value;
-        emit ProposalAction(
-            msg.sender,
-            STAKEHOLDER_ROLE,
-            "CONTRIBUTION SUCCESSFULLY RECEIVED!",
-            address(this),
-            msg.value
-        );
-
-
-        return balance;
-    }
-
-        // get single proposal
-    function getProposals(uint256 proposalID) external view returns(Proposals memory) {
-        return raisedProposals[proposalID];
-    }
-
-    // get all proposals
-    function getAllProposals() external view returns(Proposals[] memory props){
-        props = new Proposals[](totalProposals);
-        for (uint i = 0; i < totalProposals; i++) {
-            props[i] = raisedProposals[i];
-        }
-
-    }
-
-    // get a specific proposal votes
-    function getProposalVote(uint256 proposalID) external view returns(Voted[] memory){
-        return votedOn[proposalID];
-    }
-
-    // get stakeholders votes
-    function getStakeholdersVotes() stakeholderOnly("Unauthorized") external view returns(uint256[] memory){
-        return stakeholderVotes[msg.sender];
-    }
-
-    // get stakeholders balances
-    function getStakeholdersBalances() stakeholderOnly("unauthorized") external view returns(uint256){
-        return stakeholders[msg.sender];
-
-    }
-
-     // get total balances
-    function getTotalBalance() external view returns(uint256){
-        return balance;
-
-    }
-
-    // check if stakeholder
-    function stakeholderStatus() external view returns(bool){
-        return stakeholders[msg.sender] > 0;
-    }
-
-    // check if contributor
-    function isContributor() external view returns(bool){
-        return contributors[msg.sender] > 0;
-    }
-
-    // check contributors balance
-    function getContributorsBalance() contributorOnly("unathorized") external view returns(uint256){
-        return contributors[msg.sender];
-    }
-
-    function getDeployer()external view returns(address){
-        return deployer;
-
-    }
-
-
-
-
-
+    // Other contract functionalities...
 }
