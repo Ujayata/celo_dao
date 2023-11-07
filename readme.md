@@ -1,6 +1,7 @@
 
 # Overview
 
+website url : https://celo-dao-ten.vercel.app/
 CELODAO  is a platform that enables decentralized governance and operation of organizations that is built on CELO blockchain. It allows users to become stakeholders by contributing a certain amount of resources.
 
 Stakeholders within the DAO have the ability to raise proposals, which are then voted upon by other stakeholders. The voting period for each proposal is stipulated to be 5 minutes.
