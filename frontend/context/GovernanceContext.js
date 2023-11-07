@@ -80,7 +80,7 @@ const Government_provider =({children})=>{
                 Swal.fire({
                     position: 'top-end',
                     icon: 'success',
-                    text: `You have successfully contributed ${amount} ETH to the DAO`,
+                    text: `You have successfully contributed ${amount} CELO to the DAO`,
                     showConfirmButton: true,
                     timer: 4000
                 })
